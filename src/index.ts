@@ -39,12 +39,41 @@ let users: IUser[] = []
 let chat: IMessage[] = []
 
 io.on('connection', socket => {
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         const newsUsers: IUser[] = []
 
-        users.map(user => {
-            if (user.id != socket.id) {
-                newsUsers.push(user)
+        const disconnectedUser = (await Promise.all(
+            users.map(user => {
+                if (user.id != socket.id) {
+                    newsUsers.push(user)
+                } else {
+                    return user
+                }
+            })
+        ))[0]
+
+        chat.push({
+            user: {
+                id: 'system',
+                name: 'Sistema 🤖',
+                created: {
+                    system: new Date(),
+                    date: new Date().toLocaleDateString('pt-br', { timeZone: 'UTC' }),
+                    hour: new Date().toLocaleTimeString('pt-br', {
+                        timeZone: 'UTC',
+                        timeStyle: 'short'
+                    })
+                }
+            },
+            id: v4(),
+            text: `${disconnectedUser.name} saiu ;-;`,
+            created: {
+                system: new Date(),
+                date: new Date().toLocaleDateString('pt-br', { timeZone: 'UTC' }),
+                hour: new Date().toLocaleTimeString('pt-br', {
+                    timeZone: 'UTC',
+                    timeStyle: 'short'
+                })
             }
         })
 
@@ -102,10 +131,36 @@ io.on('connection', socket => {
             }
 
             users.push(user)
+
+            chat.push({
+                user: {
+                    id: 'system',
+                    name: 'Sistema 🤖',
+                    created: {
+                        system: new Date(),
+                        date: new Date().toLocaleDateString('pt-br', { timeZone: 'UTC' }),
+                        hour: new Date().toLocaleTimeString('pt-br', {
+                            timeZone: 'UTC',
+                            timeStyle: 'short'
+                        })
+                    }
+                },
+                id: v4(),
+                text: `${user.name} entrou 😃`,
+                created: {
+                    system: new Date(),
+                    date: new Date().toLocaleDateString('pt-br', { timeZone: 'UTC' }),
+                    hour: new Date().toLocaleTimeString('pt-br', {
+                        timeZone: 'UTC',
+                        timeStyle: 'short'
+                    })
+                }
+            })
     
             io.to(socket.id).emit('userCreated', user)
 
             socket.broadcast.emit('users', users)
+            io.emit('chat', chat)
         }
     })
 
